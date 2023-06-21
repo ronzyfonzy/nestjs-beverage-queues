@@ -1,3 +1,5 @@
+node_modules/@bull-board/ui/dist/static/0f14376d2a4fbd2ea028.chunk.js
+
 <p align="center">
   <a href="http://nestjs.com/" target="blank"><img src="https://nestjs.com/img/logo-small.svg" width="200" alt="Nest Logo" /></a>
 </p>
