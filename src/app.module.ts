@@ -1,31 +1,24 @@
 import { Module } from '@nestjs/common';
-import { ConfigModule } from '@nestjs/config';
-import { CacheModule, CacheStore } from '@nestjs/cache-manager';
-import type { RedisClientOptions } from 'redis';
-import { redisStore } from 'cache-manager-redis-store';
 import { BullModule } from '@nestjs/bull';
-
-import configuration from './config/configuration';
-
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { BartenderController } from './bartender/bartender.controller';
 
 import { BullBoardModule } from '@bull-board/nestjs';
 import { ExpressAdapter } from '@bull-board/express';
 import { BullAdapter } from '@bull-board/api/bullAdapter';
 
+import { QUEUES } from './constants';
+
+import { AppController } from './app.controller';
+import { BartenderController } from './bartender/bartender.controller';
+import { BartenderModule } from './bartender/bartender.module';
+import { CachierController } from './cachier/cachier.controller';
+import { WaitressModule } from './waitress/waitress.module';
+
 @Module({
+  controllers: [AppController, BartenderController, CachierController],
+  providers: [],
   imports: [
-    ConfigModule.forRoot({
-      isGlobal: true,
-      load: [configuration],
-    }),
-    CacheModule.register<RedisClientOptions>({
-      isGlobal: true,
-      /** @see https://github.com/dabroek/node-cache-manager-redis-store/issues/53#issuecomment-1372944703 */
-      store: redisStore as unknown as CacheStore,
-    }),
+    BartenderModule,
+    WaitressModule,
     BullModule.forRoot({
       redis: {
         host: 'localhost',
@@ -34,10 +27,10 @@ import { BullAdapter } from '@bull-board/api/bullAdapter';
     }),
     BullModule.registerQueue(
       {
-        name: 'bartender',
+        name: QUEUES.BARTENDER,
       },
       {
-        name: 'waiter',
+        name: QUEUES.WAITRESS,
       },
     ),
     BullBoardModule.forRoot({
@@ -46,16 +39,14 @@ import { BullAdapter } from '@bull-board/api/bullAdapter';
     }),
     BullBoardModule.forFeature(
       {
-        name: 'bartender',
+        name: QUEUES.BARTENDER,
         adapter: BullAdapter,
       },
       {
-        name: 'waiter',
+        name: QUEUES.WAITRESS,
         adapter: BullAdapter,
       },
     ),
   ],
-  controllers: [AppController, BartenderController],
-  providers: [AppService],
 })
 export class AppModule {}

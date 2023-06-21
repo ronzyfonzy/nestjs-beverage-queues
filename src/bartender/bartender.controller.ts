@@ -1,35 +1,24 @@
-import { Controller, Inject, Get, Param } from '@nestjs/common';
-import { ConfigService } from '@nestjs/config';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
-import { Queue } from 'bull';
-import { InjectQueue } from '@nestjs/bull';
+import { Controller, Get, Param, Res } from '@nestjs/common';
+import { Response } from 'express';
 
 @Controller('bartender')
 export class BartenderController {
-  constructor(
-    private configService: ConfigService,
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
-    @InjectQueue('bartender') private readonly bartenderQueue: Queue,
-  ) {}
-
   @Get()
-  async getHello(): Promise<string> {
-    return JSON.stringify({ hey: 'hello' });
+  async getHello(@Res() res: Response) {
+    res.json({ hey: `I'm a funky bartender ԅ(≖‿≖ԅ)` });
   }
 
-  @Get('bevarage/:bevarageType')
-  async bevarage(@Param('bevarageType') bevarageType: string) {
-    await this.bartenderQueue.add(
-      'order',
-      {
-        bevarage: bevarageType,
-      },
-      {
-        removeOnComplete: true,
-      },
-    );
+  @Get('order/:beverage')
+  async order(@Param('beverage') beverage: string) {
+    const preparedBeverage = await new Promise((resolve) =>
+      setTimeout(resolve, 5000),
+    ).then(() => {
+      return beverage;
+    });
 
-    return { message: `You just ordered ${bevarageType}` };
+    return {
+      message: `(˵ ͡° ͜ʖ ͡°˵) You just ordered ${beverage}`,
+      hereIsYour: preparedBeverage,
+    };
   }
 }

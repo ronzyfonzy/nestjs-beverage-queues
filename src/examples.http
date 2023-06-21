@@ -1,0 +1,17 @@
+GET http://localhost:3000/
+
+###
+
+GET http://localhost:3000/bartender
+
+###
+
+GET http://localhost:3000/bartender/order/beer
+
+###
+
+GET http://localhost:3000/cachier
+
+###
+
+GET http://localhost:3000/cachier/order/beer

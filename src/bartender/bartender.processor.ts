@@ -1,51 +1,74 @@
 import { InjectQueue, Process, Processor } from '@nestjs/bull';
-import { Inject, Logger } from '@nestjs/common';
+import { Logger } from '@nestjs/common';
 import { Job, Queue } from 'bull';
-import { CACHE_MANAGER } from '@nestjs/cache-manager';
-import { Cache } from 'cache-manager';
+import { randomUUID } from 'crypto';
+import { PROCESSESS, QUEUES } from 'src/constants';
+import { IJobOrder, IJobServe } from 'src/interfaces';
 
 @Processor('bartender')
 export class BartenderProcessor {
-  private readonly myNameIs = 'Bartender';
   private readonly logger = new Logger(BartenderProcessor.name);
+  private readonly isAlsoServing = false;
+  private jobId = '';
 
   constructor(
-    @Inject(CACHE_MANAGER) private cacheManager: Cache,
-    @InjectQueue('waiter') private readonly waiterQueue: Queue,
+    @InjectQueue(QUEUES.WAITRESS) private readonly waitressQueue: Queue,
   ) {}
 
-  @Process('order')
-  async handleOrder(job: Job) {
-    this.logger.debug(`${this.myNameIs} preparing bevarage ${job.data.id}...`);
-    job.log('asd');
+  @Process(PROCESSESS.ORDER)
+  async handleOrder(job: Job<IJobOrder>) {
     job.progress(0);
+    // job.log('put this into job logs');
 
-    const prepared = await new Promise((resolve) =>
+    this.jobId = job.data.id;
+
+    const preparedBeverage = await this.preparedBeverage(job.data.beverage);
+    this.logger.debug(`${this.jobId} / ${preparedBeverage} prepared`);
+
+    job.progress(50);
+
+    if (this.isAlsoServing) {
+      const servedBeverage = await this.serveBeverage(preparedBeverage);
+      this.logger.debug(`${this.jobId} / ${servedBeverage} served ※\\(^o^)/※`);
+    } else {
+      await this.handOverToWaitress(preparedBeverage);
+    }
+
+    job.progress(100);
+  }
+
+  async preparedBeverage(beverage: string) {
+    this.logger.debug(`${this.jobId} / preparing ${beverage}`);
+
+    const preparedBeverage = await new Promise((resolve) =>
       setTimeout(resolve, 5000),
     ).then(() => {
-      return job.data;
+      return beverage;
     });
-    this.logger.debug(`${this.myNameIs} prepared ${prepared.bevarage}`);
-    // this.logger.debug(`${this.myNameIs} serving ${prepared.bevarage}...`);
 
-    this.logger.debug(`${this.myNameIs} moving to waiter`);
-    await this.waiterQueue.add('serve', job.data);
-    // job.progress(30);
+    return preparedBeverage;
+  }
 
-    // const serve = await new Promise((resolve) =>
-    //   setTimeout(resolve, 5000),
-    // ).then(() => {
-    //   return prepared;
-    // });
+  async serveBeverage(preparedBeverage: string) {
+    this.logger.debug(`${this.jobId} / serving ${preparedBeverage}`);
 
-    // this.logger.debug(`${this.myNameIs} served ${serve.bevarage}`);
+    const servedBeverage = await new Promise((resolve) =>
+      setTimeout(resolve, 5000),
+    ).then(() => {
+      return preparedBeverage;
+    });
 
-    // let counter = (await this.cacheManager.get<number>('counter')) || 0;
-    // if (counter > 0) {
-    //   await this.cacheManager.set('counter', --counter);
-    // }
-    job.progress(100);
+    return servedBeverage;
+  }
 
-    this.logger.debug(`${this.myNameIs} free \\o/`);
+  async handOverToWaitress(preparedBeverage: string) {
+    this.logger.debug(`${this.jobId} / hand over to waitress`);
+
+    const jobData: IJobServe = {
+      id: randomUUID(),
+      preparedBeverage,
+    };
+
+    return this.waitressQueue.add(PROCESSESS.SERVE, jobData);
   }
 }
