@@ -1,8 +1,8 @@
 import { NestFactory } from '@nestjs/core';
-import { WaitressModule } from '../waitress/waitress.module';
+import { BartenderModule } from './bartender/bartender.module';
 
 async function bootstrap() {
-  await NestFactory.createApplicationContext(WaitressModule);
+  await NestFactory.createApplicationContext(BartenderModule);
   console.debug(`Worker is running`);
 }
 bootstrap();
